@@ -1,7 +1,7 @@
 use chrono::Utc;
 use crypto_hash::{hex_digest, Algorithm};
 
-static DIFFICULTY: i8 = 5;
+static DIFFICULTY: usize = 5;
 
 #[derive(Debug)]
 struct Transaction {
@@ -29,19 +29,24 @@ fn create_transaction(from_address: String, to_address: String, amount: u32) -> 
     };
 }
 
-fn create_block(
-    created_at: i64,
-    data: Transaction,
-    previous_block_hash: String,
-    nonce: i32,
-) -> Block {
-    let mut input: String = String::from("");
+fn create_block(created_at: i64, data: Transaction, previous_block_hash: String) -> Block {
+    let mut nonce: i32 = 0;
+    let mut hash: String = String::from("");
+    let mut substr: String = String::from("");
 
-    input.push_str(data.from_address.as_str());
-    input.push_str(data.to_address.as_str());
-    input.push_str(data.amount.to_string().as_str());
+    while substr != String::from("00000") {
+        nonce = nonce + 1;
 
-    let hash = hex_digest(Algorithm::SHA256, input.as_bytes());
+        let mut input: String = String::from("");
+
+        input.push_str(data.from_address.as_str());
+        input.push_str(data.to_address.as_str());
+        input.push_str(data.amount.to_string().as_str());
+        input.push_str(nonce.to_string().as_str());
+
+        hash = hex_digest(Algorithm::SHA256, input.as_bytes());
+        substr = hash.chars().take(DIFFICULTY).collect();
+    }
 
     return Block {
         hash: hash,
@@ -57,7 +62,7 @@ fn main() {
     let date_time = Utc::now();
 
     let tx1 = create_transaction(String::from("null"), String::from("null"), 0);
-    let block1 = create_block(date_time.timestamp(), tx1, String::from("NULL"), 0);
+    let block1 = create_block(date_time.timestamp(), tx1, String::from("NULL"));
 
     let mut lithium: Blockchain = Vec::new();
 
