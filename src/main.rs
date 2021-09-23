@@ -13,11 +13,22 @@ fn main() {
         pending_transactions: vec![],
     };
 
-    let tx1 = Transaction::new("null".to_owned(), "null".to_owned(), 0);
+    for i in 0..10 {
+        let transaction = Transaction::new("null".to_owned(), "null".to_owned(), i);
+        lithium.pending_transactions.push(transaction);
 
-    let block1 = Block::new(vec![tx1], lithium.chain.last().unwrap().hash.to_owned());
+        let block = Block::new(
+            vec![lithium.pending_transactions.pop().unwrap()],
+            lithium.chain.last().unwrap().hash.to_owned(),
+        );
 
-    lithium.chain.push(block1);
+        lithium.chain.push(block);
 
-    println!("Block added to chain:\n{:?}", lithium.chain.last());
+        println!(
+            "Block added to chain:\n{:?}\n",
+            lithium.chain.last().unwrap()
+        );
+    }
+
+    println!("Chain:\n{:?}", lithium.chain);
 }
