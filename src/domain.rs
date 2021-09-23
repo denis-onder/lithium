@@ -1,3 +1,4 @@
+extern crate rand;
 extern crate serde;
 extern crate serde_json;
 
@@ -22,30 +23,24 @@ pub trait HashableBlock {
   fn create_genesis_block() -> Self;
 }
 
+pub trait HashableTransaction {
+  fn new(from_address: String, to_address: String, amount: u32) -> Self;
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Transaction {
+  pub hash: String,
   pub from_address: String,
   pub to_address: String,
   pub amount: u32,
 }
 
-#[derive(Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Block {
   pub hash: String,
   created_at: i64, // Timestamp
   data: Vec<Transaction>,
   previous_block_hash: String,
-  nonce: i32,
-}
-
-pub type Blockchain = Vec<Block>;
-pub type Blockmap = HashMap<String, Block>;
-
-#[derive(Debug)]
-pub struct Lithium {
-  pub chain: Blockchain,
-  pub map: Blockmap,
-  pub pending_transactions: Vec<Transaction>,
 }
 
 impl HashableBlock for Block {
@@ -60,8 +55,8 @@ impl HashableBlock for Block {
       let mut input: String = String::from("");
 
       for transaction in data.iter() {
-        let serialied = serde_json::to_string(&transaction).unwrap();
-        input.push_str(serialied.as_str());
+        let serialized_transaction = serde_json::to_string(&transaction).unwrap();
+        input.push_str(serialized_transaction.as_str());
       }
 
       input.push_str(nonce.to_string().as_str());
@@ -75,11 +70,41 @@ impl HashableBlock for Block {
       created_at: get_current_timestamp(),
       data: data,
       previous_block_hash: previous_block_hash,
-      nonce: nonce,
     };
   }
 
   fn create_genesis_block() -> Block {
     return Self::new(vec![], "LITHIUM".to_owned());
   }
+}
+
+impl HashableTransaction for Transaction {
+  fn new(from_address: String, to_address: String, amount: u32) -> Transaction {
+    let mut input: String = String::from("");
+    let nonce: u64 = rand::random();
+
+    input.push_str(from_address.as_str());
+    input.push_str(to_address.as_str());
+    input.push_str(&amount.to_string());
+    input.push_str(&nonce.to_string());
+
+    let hash = create_hash(input);
+
+    return Transaction {
+      hash: hash,
+      to_address: to_address,
+      from_address: from_address,
+      amount: amount,
+    };
+  }
+}
+
+pub type Blockchain = Vec<Block>;
+pub type Blockmap = HashMap<String, Block>;
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Lithium {
+  pub chain: Blockchain,
+  pub map: Blockmap,
+  pub pending_transactions: Vec<Transaction>,
 }
