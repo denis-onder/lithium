@@ -1,5 +1,6 @@
 use chrono::Utc;
 use crypto_hash::{hex_digest, Algorithm};
+use std::collections::HashMap;
 
 extern crate serde;
 extern crate serde_json;
@@ -10,12 +11,19 @@ extern crate serde_derive;
 
 static DIFFICULTY: usize = 5;
 
+fn get_current_timestamp() -> i64 {
+    let date_time = Utc::now();
+
+    return date_time.timestamp();
+}
+
 fn create_hash(input: String) -> String {
     return hex_digest(Algorithm::SHA256, input.as_bytes());
 }
 
-trait Hashable {
+trait HashableBlock {
     fn new(created_at: i64, data: Vec<Transaction>, previous_block_hash: String) -> Self;
+    fn create_genesis_block() -> Self;
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -34,7 +42,17 @@ struct Block {
     nonce: i32,
 }
 
-impl Hashable for Block {
+type Blockchain = Vec<Block>;
+type Blockmap = HashMap<String, Block>;
+
+#[derive(Debug)]
+struct Lithium {
+    chain: Blockchain,
+    map: Blockmap,
+    pending_transactions: Vec<Transaction>,
+}
+
+impl HashableBlock for Block {
     fn new(created_at: i64, data: Vec<Transaction>, previous_block_hash: String) -> Block {
         let mut nonce: i32 = 0;
         let mut hash: String = String::from("");
@@ -64,9 +82,11 @@ impl Hashable for Block {
             nonce: nonce,
         };
     }
-}
 
-type Blockchain = Vec<Block>;
+    fn create_genesis_block() -> Block {
+        return Self::new(get_current_timestamp(), vec![], "LITHIUM".to_owned());
+    }
+}
 
 fn create_transaction(from_address: String, to_address: String, amount: u32) -> Transaction {
     return Transaction {
@@ -77,14 +97,16 @@ fn create_transaction(from_address: String, to_address: String, amount: u32) -> 
 }
 
 fn main() {
-    let date_time = Utc::now();
-
     let tx1 = create_transaction(String::from("null"), String::from("null"), 0);
-    let block1 = Block::new(date_time.timestamp(), vec![tx1], String::from("NULL"));
+    let block1 = Block::new(get_current_timestamp(), vec![tx1], String::from("NULL"));
 
-    let mut lithium: Blockchain = Vec::new();
+    let mut lithium: Lithium = Lithium {
+        chain: vec![Block::create_genesis_block()],
+        map: HashMap::new(),
+        pending_transactions: vec![],
+    };
 
-    lithium.push(block1);
+    lithium.chain.push(block1);
 
     println!("{:?}", lithium);
 }
