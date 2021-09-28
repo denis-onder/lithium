@@ -5,8 +5,7 @@ extern crate serde_json;
 use chrono::Utc;
 use crypto_hash::{hex_digest, Algorithm};
 use std::collections::HashMap;
-
-static DIFFICULTY: usize = 5;
+use std::env;
 
 fn get_current_timestamp() -> i64 {
   let date_time = Utc::now();
@@ -48,8 +47,12 @@ impl HashableBlock for Block {
     let mut nonce: i32 = 0;
     let mut hash: String = String::from("");
     let mut substr: String = String::from("");
+    let difficulty: usize = match env::var("DIFFICULTY") {
+      Ok(value) => value.parse().unwrap(),
+      Err(_) => 2,
+    };
 
-    while substr != String::from("00000") {
+    while substr != vec!["0"; difficulty].join("") {
       nonce = nonce + 1;
 
       let mut input: String = String::from("");
@@ -62,7 +65,7 @@ impl HashableBlock for Block {
       input.push_str(nonce.to_string().as_str());
 
       hash = create_hash(input);
-      substr = hash.chars().take(DIFFICULTY).collect();
+      substr = hash.chars().take(difficulty).collect();
     }
 
     return Block {
@@ -102,9 +105,32 @@ impl HashableTransaction for Transaction {
 pub type Blockchain = Vec<Block>;
 pub type Blockmap = HashMap<String, Block>;
 
+pub trait ChainMethods {
+  fn add_block(&mut self, block: Block);
+  fn validate_chain(self) -> bool;
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Lithium {
   pub chain: Blockchain,
   pub map: Blockmap,
   pub pending_transactions: Vec<Transaction>,
+}
+
+impl ChainMethods for Blockchain {
+  fn add_block(&mut self, block: Block) {
+    self.push(block);
+  }
+  fn validate_chain(self) -> bool {
+    for i in 1..self.len() {
+      let current_block = &self[i];
+      let previoust_block = &self[i - 1];
+
+      if current_block.previous_block_hash != previoust_block.hash {
+        return false;
+      }
+    }
+
+    return true;
+  }
 }
