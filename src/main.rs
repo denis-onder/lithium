@@ -6,7 +6,9 @@ use dotenv::dotenv;
 use std::collections::HashMap;
 
 mod domain;
-use domain::{Block, ChainMethods, HashableBlock, HashableTransaction, Lithium, Transaction};
+use domain::{
+    Block, ChainMethods, HashableBlock, HashableTransaction, Lithium, LithiumMethods, Transaction,
+};
 
 fn main() {
     dotenv().ok();
@@ -17,16 +19,12 @@ fn main() {
         pending_transactions: vec![],
     };
 
+    // Mining test
     for i in 0..3 {
         let transaction = Transaction::new("null".to_owned(), "null".to_owned(), i);
         lithium.pending_transactions.push(transaction);
 
-        let block = Block::new(
-            vec![lithium.pending_transactions.pop().unwrap()],
-            lithium.chain.last().unwrap().hash.to_owned(),
-        );
-
-        lithium.chain.add_block(block);
+        lithium.mine_block();
 
         println!(
             "Block added to chain:\n{}\n",

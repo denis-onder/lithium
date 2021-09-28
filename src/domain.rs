@@ -26,7 +26,7 @@ pub trait HashableTransaction {
   fn new(from_address: String, to_address: String, amount: u32) -> Self;
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Transaction {
   pub hash: String,
   pub from_address: String,
@@ -34,7 +34,7 @@ pub struct Transaction {
   pub amount: u32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Block {
   pub hash: String,
   created_at: i64, // Timestamp
@@ -110,11 +110,24 @@ pub trait ChainMethods {
   fn validate_chain(self) -> bool;
 }
 
+pub trait LithiumMethods {
+  fn mine_block(&mut self);
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Lithium {
   pub chain: Blockchain,
   pub map: Blockmap,
   pub pending_transactions: Vec<Transaction>,
+}
+
+impl LithiumMethods for Lithium {
+  fn mine_block(&mut self) {
+    let previous_block_hash = String::from(self.chain.last().unwrap().hash.as_str());
+    let block = Block::new(self.pending_transactions.to_owned(), previous_block_hash);
+
+    self.chain.push(block);
+  }
 }
 
 impl ChainMethods for Blockchain {
